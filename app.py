@@ -34,25 +34,18 @@ app.config['SESSION_REDIS'] = redis.StrictRedis(
     db=0                # Replace with the Redis database number (default is 0)
 )
 Session(app)
-CORS(app)
+CORS(app, resources={
+     r"/api/*": {"origins": "http://localhost:3000", "supports_credentials": True}})
 
 os.environ["OPENAI_API_KEY"] = "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"
-llm = OpenAI(temperature=0.6)
-memory = ConversationBufferMemory(
-    memory_key='chat_history', return_messages=True)
+
+
 embeddings = OpenAIEmbeddings()
 new_db1 = FAISS.load_local("main_DB/mega_Base1", embeddings)
-conversation_chain0 = ConversationalRetrievalChain.from_llm(
-    llm=llm,
-    retriever=new_db1.as_retriever(),
-    memory=memory
-)
 
 
-user_data = {}
-
-
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
+@cross_origin(supports_credentials=True)
 def home():
 
     if request.method == 'POST':
@@ -61,7 +54,12 @@ def home():
 
             if not session.get('hello'):
                 print("run")
-                session['hello'] = conversation_chain0
+                session['hello'] = ConversationalRetrievalChain.from_llm(
+                    llm=OpenAI(temperature=0.6),
+                    retriever=new_db1.as_retriever(),
+                    memory=ConversationBufferMemory(
+                        memory_key='chat_history', return_messages=True)
+                )
 
             data = json.loads(request.data.decode('utf-8'))
             # Retrieve the question from the JSON data.
@@ -90,10 +88,14 @@ def home():
                 act = make_response(jsonify(lis))
 
                 act.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+                act.headers['Access-Control-Allow-Credentials'] = True
                 return jsonify(lis)
 
         except Exception as e:
             return jsonify({"error": "something went wrong"})
+    else:
+        session.pop('hello', default=None)
+        return "cleared"
 
 
 app.run(host='0.0.0.0', port=8000, debug=True)

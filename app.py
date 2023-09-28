@@ -27,6 +27,8 @@ app.config['SESSION_TYPE'] = 'redis'
 # Session data doesn't persist beyond browser session
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 
 app.config['SESSION_REDIS'] = redis.StrictRedis(
     host='localhost',  # Replace with your Redis server's host
@@ -35,9 +37,9 @@ app.config['SESSION_REDIS'] = redis.StrictRedis(
 )
 Session(app)
 CORS(app, resources={
-     r"/api/*": {"origins": "http://localhost:3000", "supports_credentials": True}})
+     r"/api/*": {"origins": "*", "supports_credentials": True}})
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "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"
 
 
 embeddings = OpenAIEmbeddings()
@@ -72,6 +74,7 @@ def home():
             if question:
 
                 response = chain({'question': question})
+
                 res = response['chat_history']
 
                 questionn = ""
@@ -87,9 +90,11 @@ def home():
 
                 act = make_response(jsonify(lis))
 
-                act.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-                act.headers['Access-Control-Allow-Credentials'] = True
-                return jsonify(lis)
+                # act.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+                # act.headers['Access-Control-Allow-Credentials'] = True
+
+                print(act)
+                return act
 
         except Exception as e:
             return jsonify({"error": "something went wrong"})
@@ -99,3 +104,6 @@ def home():
 
 
 app.run(host='0.0.0.0', port=8000, debug=True)
+
+
+# model_name="gpt-3.5-turbo"
